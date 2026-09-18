@@ -123,7 +123,7 @@ $$N_{\text{succ}} = |\mathcal{S}_{\text{succ}}| = \sum_{i=1}^N \mathbb{I}(\text{
 
 ## 5. Technical Documentation & Extended Artifacts
 
-* **[COMPLETE_TABLES_AND_PROOF.md](COMPLETE_TABLES_AND_PROOF.md):** Complete extended documentation containing all 6 empirical tables, formal mathematical proofs for Theorems 1-3, and the failure-mode remediation impact matrix.
+* **[paper/COMPLETE_TABLES_AND_PROOF.md](paper/COMPLETE_TABLES_AND_PROOF.md):** Complete extended documentation containing all 6 empirical tables, formal mathematical proofs for Theorems 1-3, and the failure-mode remediation impact matrix.
 * **Academic Manuscript:** Research paper preprint under review (available upon academic request; preprint forthcoming on arXiv).
 * **[paper/references.bib](paper/references.bib):** Complete 45-paper BibTeX database covering literature from 2023 to 2026.
 * **[experiments/results/summary_metrics.csv](experiments/results/summary_metrics.csv):** Aggregated metrics across all 5 evaluated recovery paradigms.
