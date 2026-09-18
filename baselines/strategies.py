@@ -6,11 +6,11 @@ Baseline Recovery Strategies for 5-Way Comparative Ablation Study:
 4. Strategy 4: DRAC Fixed (DRAC with fixed heuristic action mapping)
 5. Strategy 5: DRAC Full System (Dual-Process Diagnosis + B-POMDP Arbiter + Transactional Rollback + DNCS + Verifier)
 """
-from typing import Dict, Any, Tuple, Optional, Callable
+from typing import Tuple, Optional, Callable
 import time
 
 from drac.types import (
-    TelemetryEvent, FaultType, FaultDomain, Severity, RecoveryAction, ExecutionBudget, DiagnosisResult
+    TelemetryEvent, RecoveryAction, ExecutionBudget, DiagnosisResult
 )
 from drac.detector import AnomalyDetector
 from drac.diagnoser import DualProcessDiagnoser

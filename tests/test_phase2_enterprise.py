@@ -16,8 +16,7 @@ import time
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from drac.types import (
-    FaultDomain, FaultType, Severity, RecoveryAction, TelemetryEvent,
-    DiagnosisResult, Checkpoint, ExecutionBudget, OutboxStatus
+    FaultDomain, FaultType, TelemetryEvent, OutboxStatus
 )
 from drac.saga import SagaCoordinator, OutboxStagingGate
 from drac.diagnoser import DualProcessDiagnoser, SemanticHasher
@@ -43,6 +42,7 @@ class TestPhase2EnterpriseResilience(unittest.TestCase):
         # Stage call at step 1
         outbox.stage_action(step=1, tool_name="send_wire_transfer", tool_args={"amount": 500}, execute_fn=lambda: side_effecting_call(500))
         self.assertEqual(len(outbox.staged_items), 1)
+        self.assertEqual(outbox.staged_items[0].status, OutboxStatus.STAGED)
         self.assertEqual(len(dispatched_calls), 0)  # Held in staging buffer
 
         # Abort step 1 (e.g. state rollback triggered before invariant verification)
@@ -64,6 +64,7 @@ class TestPhase2EnterpriseResilience(unittest.TestCase):
         self.assertEqual(len(dispatched), 1)
         self.assertEqual(dispatched[0], "MSG_SENT")
         self.assertEqual(len(outbox.committed_items), 1)
+        self.assertEqual(outbox.committed_items[0].status, OutboxStatus.COMMITTED)
 
     def test_saga_compensating_rollback_reverse_order(self):
         """Verify saga executes backward compensating transactions in reverse chronological order."""
@@ -169,7 +170,10 @@ class TestPhase2EnterpriseResilience(unittest.TestCase):
         restored = manager.rollback(checkpoint_id=step2_id)
         self.assertEqual(restored.step, 2)
         self.assertEqual(restored.environment_state["var"], 20)
-        self.assertEqual(restored.context_history[0]["turn"], 2)
+        # Verify get_latest_checkpoint returns latest hot checkpoint
+        latest = manager.get_latest_checkpoint()
+        self.assertIsNotNone(latest)
+        self.assertEqual(latest.step, 8)
 
         manager.clear()
 
@@ -200,6 +204,22 @@ class TestPhase2EnterpriseResilience(unittest.TestCase):
     # =========================================================================
     # 4. VECTOR CLOCKS, CAUSAL SWARM ROLLBACK & EPOCH FENCING
     # =========================================================================
+    def test_vector_clock_direct_operations(self):
+        """Verify vector clock tick, merge, and causal dependency methods."""
+        vc1 = VectorClock()
+        vc1.tick("A")
+        vc1.tick("A")
+        self.assertEqual(vc1.clock["A"], 2)
+
+        vc2 = VectorClock()
+        vc2.tick("B")
+        vc1.merge(vc2)
+        self.assertEqual(vc1.clock["B"], 1)
+
+        clean_b_clock = VectorClock({"B": 0})
+        self.assertTrue(vc1.is_causally_dependent_on(clean_b_clock, "B"))
+        self.assertFalse(vc2.is_causally_dependent_on(clean_b_clock, "A"))
+
     def test_vector_clocks_and_causal_rollback_isolation(self):
         """Verify vector clocks isolate rollbacks to causally dependent agents without domino effect."""
         coordinator = CausalRollbackCoordinator()

@@ -3,8 +3,8 @@ DRAC Distilled Negative Constraint Synthesizer (DNCS).
 Synthesizes compact (~20 token) negative constraints upon rollback
 to prevent amnesia without polluting the context window.
 """
-from typing import Dict, Any, Optional
-from drac.types import DiagnosisResult, FaultDomain, FaultType
+from typing import Dict, Any
+from drac.types import DiagnosisResult, FaultType
 
 class DNCSynthesizer:
     @staticmethod

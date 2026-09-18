@@ -3,9 +3,9 @@ DRAC Budget-Constrained Recovery Arbiter (B-POMDP Utility Maximizer).
 Selects optimal recovery action conditioned on diagnosis, severity, confidence,
 and remaining token/latency budgets.
 """
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple
 from drac.types import (
-    RecoveryAction, DiagnosisResult, FaultDomain, FaultType, Severity, ExecutionBudget
+    RecoveryAction, DiagnosisResult, FaultDomain, Severity, ExecutionBudget
 )
 
 class RecoveryArbiter:

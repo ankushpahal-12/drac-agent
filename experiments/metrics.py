@@ -3,9 +3,8 @@ DRAC Empirical Metrics & Statistical Evaluation Engine.
 Computes FDR, RCA, RSR, RL, RC, CNRE, CCF, TOR, MTTR_A, and MTCR_A.
 """
 import math
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-import numpy as np
+from dataclasses import dataclass
+from typing import List, Optional
 import pandas as pd
 
 @dataclass

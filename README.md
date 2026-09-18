@@ -3,7 +3,7 @@
 <p align="center">
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Non--Commercial-red.svg?style=for-the-badge" alt="License: Non-Commercial"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/Tests-9%2F9%20Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests Passing"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-22%2F22%20Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests Passing"></a>
   <a href="experiments/"><img src="https://img.shields.io/badge/Benchmarks-400%20Trials-orange?style=for-the-badge&logo=speedtest&logoColor=white" alt="400 Real Trials"></a>
   <a href="drac/"><img src="https://img.shields.io/badge/Architecture-B--POMDP-blueviolet?style=for-the-badge" alt="B-POMDP Architecture"></a>
 </p>
@@ -116,8 +116,8 @@ Empirical evaluations were conducted across 400 real-world execution trials span
 
 | Recovery Paradigm | Fault Detection (FDR %) | Root Cause Accuracy (RCA %) | Recovery Success (RSR %) | Recovery Latency (RL s) | Recovery Cost (RC tok) | Active MTTR (MTTR_A s) | Active MTCR (MTCR_A tok) | Cascade Containment (CCF %) | Token Overhead (TOR %) | Cost-Normalized Efficiency (CNRE) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **DRAC Full System** | **100.0%** | **75.0%** | **100.0%** | **0.000s** | **142.5** | **0.000s** | **142.5** | **100.0%** | **35.6%** | **20.00** |
-| **DRAC (Fixed Heuristic)** | 100.0% | 75.0% | 100.0% | 0.000s | 172.5 | 0.000s | 172.5 | 100.0% | 43.1% | 20.00 |
+| **DRAC Full System** | **100.0%** | **75.0%** | **100.0%** | **0.000s** | **110.8** | **0.000s** | **110.8** | **100.0%** | **27.7%** | **20.00** |
+| **DRAC (Fixed Heuristic)** | 100.0% | 75.0% | 100.0% | 0.000s | 143.2 | 0.000s | 143.2 | 100.0% | 35.8% | 20.00 |
 | **Reflexion (In-band)** | 100.0% | 0.0% | 73.8% | 0.800s | 430.0 | 0.800s | 430.0 | 100.0% | 107.5% | 0.053 |
 | **Pure Rollback (Amnesia)** | 100.0% | 0.0% | 50.0% | 0.000s | 60.0 | 0.000s | 60.0 | 97.5% | 15.0% | 10.00 |
 | **Naive Retry** | 100.0% | 0.0% | 36.2% | 0.000s | 120.0 | 0.000s | 120.0 | 97.5% | 30.0% | 7.25 |

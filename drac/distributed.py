@@ -5,9 +5,8 @@ Solves the Multi-Agent Swarm Cascading Rollbacks & Deadlocks limitation by:
 2. Epoch Fencing: enforcing monotonic execution boundaries to reject stale out-of-order packets.
 3. Causal Rollback Coordinator (Chandy-Lamport Protocol): isolating rollbacks strictly to causally polluted peer nodes.
 """
-from typing import Dict, List, Any, Optional, Set, Tuple
+from typing import Dict, List, Any, Optional, Set
 from dataclasses import dataclass, field
-import copy
 import time
 
 @dataclass

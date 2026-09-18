@@ -7,7 +7,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from drac.types import (
-    DiagnosisResult, FaultDomain, FaultType, Severity, RecoveryAction, ExecutionBudget
+    DiagnosisResult, FaultDomain, FaultType, Severity, ExecutionBudget
 )
 from drac.arbiter import RecoveryArbiter
 

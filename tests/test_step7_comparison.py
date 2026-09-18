@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from drac.types import FaultType, ExecutionBudget, TelemetryEvent
+from drac.types import ExecutionBudget, TelemetryEvent
 from drac.detector import AnomalyDetector
 from drac.diagnoser import DualProcessDiagnoser
 from drac.arbiter import RecoveryArbiter

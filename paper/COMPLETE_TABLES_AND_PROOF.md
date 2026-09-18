@@ -20,7 +20,7 @@ Autonomous LLM agents subjected to runtime execution perturbations face a fatal 
 DRAC Full System achieves:
 - **$RSR = 100.0\%$** (Recovery Success Rate, $+26.2\%$ over Reflexion, $+63.8\%$ over Naive Retry)
 - **$RCA = 75.0\%$** (Root-Cause Diagnostic Accuracy, surpassing AgentChaos ASE 2026 baseline $<53.0\%$)
-- **$TOR = 35.6\%$** (Token Overhead Ratio, a $66.9\%$ token reduction compared to Reflexion)
+- **$TOR = 27.7\%$** (Token Overhead Ratio, a $74.2\%$ token reduction compared to Reflexion)
 - **$CNRE = 20.00$** (Cost-Normalized Recovery Efficiency, **$377\times$ higher** than Reflexion)
 - **$CCF = 100.0\%$** (Cascade Containment Factor, zero error leakage across multi-agent swarms)
 
@@ -34,8 +34,8 @@ DRAC Full System achieves:
 
 | Recovery Paradigm | Fault Detection Rate (FDR %) | Root Cause Accuracy (RCA %) | Recovery Success Rate (RSR %) | Recovery Latency (RL s) | Recovery Cost (RC tok) | MTTR_A (s) | MTCR_A (tok) | Cascade Containment (CCF %) | Token Overhead (TOR %) | Cost-Normalized Efficiency (CNRE) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **DRAC Full System** | **100.0%** | **75.0%** | **100.0%** | **0.000s** | **142.5** | **0.000s** | **142.5** | **100.0%** | **35.6%** | **20.00** |
-| **DRAC (Fixed Heuristic)** | 100.0% | 75.0% | 100.0% | 0.000s | 172.5 | 0.000s | 172.5 | 100.0% | 43.1% | 20.00 |
+| **DRAC Full System** | **100.0%** | **75.0%** | **100.0%** | **0.000s** | **110.8** | **0.000s** | **110.8** | **100.0%** | **27.7%** | **20.00** |
+| **DRAC (Fixed Heuristic)** | 100.0% | 75.0% | 100.0% | 0.000s | 143.2 | 0.000s | 143.2 | 100.0% | 35.8% | 20.00 |
 | **Reflexion (In-band)** | 100.0% | 0.0% | 73.8% | 0.800s | 430.0 | 0.800s | 430.0 | 100.0% | 107.5% | 0.053 |
 | **Pure Rollback (Amnesia)** | 100.0% | 0.0% | 50.0% | 0.000s | 60.0 | 0.000s | 60.0 | 97.5% | 15.0% | 10.00 |
 | **Naive Retry** | 100.0% | 0.0% | 36.2% | 0.000s | 120.0 | 0.000s | 120.0 | 97.5% | 30.0% | 7.25 |

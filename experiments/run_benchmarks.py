@@ -3,9 +3,7 @@ DRAC Benchmark Execution Runner.
 Executes batch trials across 4 agent tasks, 8 core fault injection types, and 5 recovery baselines.
 Outputs empirical dataset and statistical summary.
 """
-import time
 import random
-import json
 import sys
 import os
 from typing import List
@@ -13,7 +11,7 @@ import pandas as pd
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from drac.types import (
-    FaultType, FaultDomain, Severity, RecoveryAction, ExecutionBudget
+    FaultType, FaultDomain, ExecutionBudget
 )
 from drac.detector import AnomalyDetector
 from drac.diagnoser import DualProcessDiagnoser

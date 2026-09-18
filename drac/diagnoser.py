@@ -7,7 +7,7 @@ Bifurcates diagnosis into:
 import time
 import re
 import math
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Tuple
 from dataclasses import dataclass
 from drac.types import (
     FaultDomain, FaultType, Severity, DiagnosisResult, TelemetryEvent

@@ -13,7 +13,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import numpy as np
 
 def generate_all_plots(results_csv: str = "experiments/results/raw_trials.csv", summary_csv: str = "experiments/results/summary_metrics.csv", output_dir: str = "experiments/plots"):
     os.makedirs(output_dir, exist_ok=True)

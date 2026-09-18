@@ -3,8 +3,7 @@ DRAC Out-of-Band Trace & Anomaly Detector.
 Passively monitors telemetry and verifies runtime execution invariants.
 """
 import json
-import re
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple
 from drac.types import TelemetryEvent
 
 import hmac
