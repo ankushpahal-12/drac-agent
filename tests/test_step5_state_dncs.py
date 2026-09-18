@@ -2,6 +2,10 @@
 Verification Step 5: Test Transactional State Manager & DNCS.
 Verifies state checkpointing, context pruning, and Distilled Negative Constraint Synthesis.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from drac.types import DiagnosisResult, FaultDomain, FaultType, Severity
 from drac.state_manager import TransactionalStateManager
 from drac.dncs import DNCSynthesizer

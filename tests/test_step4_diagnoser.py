@@ -2,6 +2,10 @@
 Verification Step 4: Test DRAC Dual-Process Root-Cause Diagnoser.
 Verifies System 1 Fast-Path (0 cost, 0 ms) and System 2 Slow-Path classification.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from drac.types import TelemetryEvent, FaultDomain, FaultType
 from drac.diagnoser import DualProcessDiagnoser
 

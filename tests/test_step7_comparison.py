@@ -2,6 +2,10 @@
 Verification Step 7: Head-to-Head Comparison on a Concrete Fault Instance.
 Simulates an SQL Column Error across the 4 recovery paradigms side-by-side.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from drac.types import FaultType, ExecutionBudget, TelemetryEvent
 from drac.detector import AnomalyDetector
 from drac.diagnoser import DualProcessDiagnoser

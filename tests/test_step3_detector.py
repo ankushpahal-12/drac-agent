@@ -2,6 +2,10 @@
 Verification Step 3: Test DRAC Anomaly & Invariant Detector.
 Verifies that runtime anomalies are accurately caught without false positives.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from drac.types import TelemetryEvent
 from drac.detector import AnomalyDetector
 

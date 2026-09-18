@@ -1,6 +1,10 @@
 """
 Verification Step 1: Test Benchmark Agents under Normal (Healthy) Execution.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from injector.proxy import RuntimeFaultProxy
 from agents.calculator_agent import CalculatorAgent
 from agents.search_agent import SearchAgent

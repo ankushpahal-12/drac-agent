@@ -2,6 +2,10 @@
 Verification Step 6: Test DRAC Budget-Constrained Recovery Arbiter (B-POMDP).
 Verifies that recovery decisions adapt dynamically based on diagnosis and remaining resources.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from drac.types import (
     DiagnosisResult, FaultDomain, FaultType, Severity, RecoveryAction, ExecutionBudget
 )

@@ -2,6 +2,10 @@
 Verification Step 2: Test Chaos Fault Injection Proxy (Runtime Interception).
 Verifies that individual faults are correctly armed, intercepted, and recorded.
 """
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from drac.types import FaultType
 from injector.proxy import RuntimeFaultProxy
 from agents.calculator_agent import CalculatorAgent
