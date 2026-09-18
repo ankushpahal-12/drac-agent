@@ -175,11 +175,50 @@ We benchmark 5 recovery paradigms:
 | # | Real Failure Encountered | What Happens Without DRAC (Existing State) | What DRAC Specifically Solves (Mechanism & Proof) |
 |---|:---|:---|:---|
 | **1** | **SQL Column / Syntax Error** (`OperationalError: Unknown column`) | Naive retry re-sends the error trace. The model hallucinates or repeats the query (**18.8% success**). | **Solved via DNCS:** DRAC prunes the traceback and injects `[CONSTRAINT: Query valid schema columns only]`. Success jumps to **100.0%**. |
-| **2** | **Tool Gateway Timeout** (`HTTP 504`) | Agent hangs or retries immediately into the same congested socket, hitting repeat timeouts. | **Solved via Dual-Process Routing:** System 1 identifies timeout in $0.01\text{ ms}$; arbiter applies backoff and payload bounds (**90.0% success**). |
-| **3** | **Empty Search Return** (`0 hits found`) | Amnesic rollback repeats identical query (**10.0% success**); Reflexion burns 430 tokens analyzing why web is empty. | **Solved via DNCS Reformulation:** DRAC injects compact constraint to mutate keyword parameters, achieving **90.0% success** at 35.6% TOR. |
-| **4** | **Infinite Repetition Loop** (Agent repeating identical call) | Agent burns entire context window repeating the same action until token/dollar limits crash the run. | **Solved via Anomaly Invariant:** Detector catches 3 identical calls, terminates the loop, and forces `REPLAN` (**90.0% success**). |
-| **5** | **Multi-Agent Cascade Collapse** (Researcher error poisons Analyst) | Flawed data from Researcher passes to Analyst and Reviewer, producing an invalid final report (**CCF = 90.0%**). | **Solved via Inter-Agent Isolation:** DRAC halts the message router, recovers the Researcher before handoff, achieving **100.0% CCF**. |
-| **6** | **Runaway API Token Billing** (Uncontrolled retry loops) | Reflexion burns **107.5% token overhead** ($430$ extra tokens per turn), doubling enterprise API costs ($CNRE = 0.041$). | **Solved via B-POMDP Arbiter:** Enforces remaining budget bounds, reducing overhead to **35.6%** and boosting efficiency to **$CNRE = 18.25$** ($445\times$ higher). |
+| **2** | **Tool Gateway Timeout** (`HTTP 504`) | Agent hangs or retries immediately into the same congested socket, hitting repeat timeouts. | **Solved via Dual-Process Routing:** System 1 identifies timeout in $0.01\text{ ms}$; arbiter applies backoff and payload bounds (**100.0% success**). |
+| **3** | **Empty Search Return** (`0 hits found`) | Amnesic rollback repeats identical query (**20.0% success**); Reflexion burns 430 tokens analyzing why web is empty. | **Solved via DNCS Reformulation:** DRAC injects compact constraint to mutate keyword parameters, achieving **100.0% success** at 35.6% TOR. |
+| **4** | **Infinite Repetition Loop** (Agent repeating identical call) | Agent burns entire context window repeating the same action until token/dollar limits crash the run. | **Solved via Anomaly Invariant:** Detector catches 3 identical calls, terminates the loop, and forces `REPLAN` (**100.0% success**). |
+| **5** | **Multi-Agent Cascade Collapse** (Researcher error poisons Analyst) | Flawed data from Researcher passes to Analyst and Reviewer, producing an invalid final report (**CCF drops to 97.5%**). | **Solved via Inter-Agent Isolation:** DRAC halts the message router, recovers the Researcher before handoff, achieving **100.0% CCF**. |
+| **6** | **Runaway API Token Billing** (Uncontrolled retry loops) | Reflexion burns **107.5% token overhead** ($430$ extra tokens per turn), doubling enterprise API costs ($CNRE = 0.053$). | **Solved via B-POMDP Arbiter:** Enforces remaining budget bounds, reducing overhead to **35.6%** and boosting efficiency to **$CNRE = 20.00$** ($377\times$ higher). |
+
+---
+
+### Table 6: SRE Reliability & Cost-Normalized Recovery Efficiency Metrics
+
+*Formal mathematical definitions and operational significance of evaluated resilience metrics.*
+
+| Metric Symbol | Full Metric Name | Formal Definition / Formula | Operational SRE Significance |
+| :--- | :--- | :--- | :--- |
+| **FDR** | Fault Detection Rate | $\text{FDR} = \frac{1}{N} \sum_{i=1}^N \mathbb{I}(\text{Detected}_i) \times 100\%$ | Proportion of injected perturbations flagged by out-of-band invariant monitoring. |
+| **RCA** | Root Cause Accuracy | $\text{RCA} = \frac{1}{N_{\text{det}}} \sum_{i=1}^{N_{\text{det}}} \mathbb{I}(\hat{d}_i = d_i^*) \times 100\%$ | Diagnostic precision of attributed fault domain $\hat{d}_i$ against ground-truth domain $d_i^*$. |
+| **RSR** | Recovery Success Rate | $\text{RSR} = \frac{1}{N} \sum_{i=1}^N \mathbb{I}(\text{Success}_i) \times 100\%$ | Primary resilience KPI: fraction of perturbed trials reaching valid task completion. |
+| **RL** | Recovery Latency | $\text{RL} = \frac{1}{N} \sum_{i=1}^N t_{\text{rec}}^{(i)}$ | Mean wall-clock time consumed during detection, diagnosis, and state recovery. |
+| **RC** | Recovery Cost | $\text{RC} = \frac{1}{N} \sum_{i=1}^N c_{\text{rec}}^{(i)}$ | Mean additional token expenditure consumed by the recovery controller to restore valid state. |
+| **MTTR_A** | Mean Time to Recover (Active) | $\text{MTTR}_A = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} t_{\text{rec}}^{(i)}$ | Mean clock latency across successful recovery trials, where $N_{\text{succ}} = \text{card}(\mathcal{S}_{\text{succ}})$. |
+| **MTCR_A** | Mean Tokens to Recover (Active) | $\text{MTCR}_A = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} c_{\text{rec}}^{(i)}$ | Mean recovery token cost across successful trials, where $N_{\text{succ}} = \text{card}(\mathcal{S}_{\text{succ}})$. |
+| **CCF** | Cascade Containment Factor | $\text{CCF} = \frac{1}{N_{\text{MAS}}} \sum_{j=1}^{N_{\text{MAS}}} \mathbb{I}(\text{Contained}_j) \times 100\%$ | Proportion of multi-agent faults neutralized at origin without downstream poisoning. |
+| **TOR** | Token Overhead Ratio | $\text{TOR} = \frac{\overline{C}_{\text{rec}}}{\overline{C}_{\text{base}}} \times 100\%$ | Percentage token inflation relative to unperturbed nominal baseline execution cost $\overline{C}_{\text{base}}$. |
+| **CNRE** | Cost-Normalized Recovery Efficiency | $\text{CNRE} = \frac{\text{RSR} / 100}{\log_2(1 + C_{\text{norm}}) \cdot \log_2(1 + T_{\text{norm}})}$ | Pareto frontier metric with $C_{\text{norm}} = \frac{\overline{C}_{\text{rec}}}{\overline{C}_{\text{base}}}$ and $T_{\text{norm}} = \frac{\overline{T}_{\text{rec}}}{\overline{T}_{\text{base}}}$. |
+
+#### Formal Mathematical Formulations
+
+Let $\mathcal{T} = \{1, 2, \dots, N\}$ denote the set of all evaluated trials ($N = 400$). Let $\mathcal{S}_{\text{succ}} = \{i \in \mathcal{T} \mid \text{Success}_i = 1\}$ denote the subset of trials in which the recovery controller successfully restored valid execution, with active recovery cardinality $N_{\text{succ}} = |\mathcal{S}_{\text{succ}}| = \sum_{i=1}^N \mathbb{I}(\text{Success}_i)$.
+
+1. **Mean Time to Recover (Active):**
+   $$\text{MTTR}_A = \frac{\sum_{i \in \mathcal{S}_{\text{succ}}} \text{Latency}^{(i)}}{|\mathcal{S}_{\text{succ}}|} = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} t_{\text{rec}}^{(i)}$$
+   where $t_{\text{rec}}^{(i)}$ represents the recovery latency (wall-clock seconds) of trial $i$, conditioning exclusively on successful recoveries to prevent skew from unrecovered timeout timeouts.
+
+2. **Mean Tokens to Recover (Active):**
+   $$\text{MTCR}_A = \frac{\sum_{i \in \mathcal{S}_{\text{succ}}} \text{Tokens}^{(i)}}{|\mathcal{S}_{\text{succ}}|} = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} c_{\text{rec}}^{(i)}$$
+   where $c_{\text{rec}}^{(i)}$ denotes the additional prompt and completion tokens incurred by the recovery mechanism for trial $i$.
+
+3. **Cost-Normalized Recovery Efficiency (CNRE):**
+   $$\text{CNRE} = \frac{\text{RSR} / 100}{\max\left(\epsilon, \, \log_2(1 + C_{\text{norm}}) \cdot \log_2(1 + T_{\text{norm}})\right)}$$
+   where:
+   - $C_{\text{norm}} = \frac{\overline{C}_{\text{rec}}}{\max(1, \overline{C}_{\text{base}})}$ is the normalized recovery token cost relative to the nominal unperturbed task baseline $\overline{C}_{\text{base}}$.
+   - $T_{\text{norm}} = \frac{\overline{T}_{\text{rec}}}{\max(\delta, \overline{T}_{\text{base}})}$ is the normalized recovery wall-clock latency relative to baseline execution latency $\overline{T}_{\text{base}}$ ($\delta = 0.01\text{s}$).
+   - $\epsilon = 0.05$ is a positive regularization bound guaranteeing numerical stability when sub-millisecond fast-path recoveries approach $T_{\text{norm}} \approx 0$.
+   CNRE defines the Pareto frontier balancing recovery effectiveness against computational token expenditure and latency overhead.
 
 ---
 

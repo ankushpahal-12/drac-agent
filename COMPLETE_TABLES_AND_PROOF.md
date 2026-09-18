@@ -118,6 +118,26 @@ DRAC Full System achieves:
 | **TOR** | Token Overhead Ratio | $\text{TOR} = \frac{\overline{C}_{\text{rec}}}{\overline{C}_{\text{base}}} \times 100\%$ | Percentage token inflation relative to unperturbed nominal baseline execution cost $\overline{C}_{\text{base}}$. |
 | **CNRE** | Cost-Normalized Recovery Efficiency | $\text{CNRE} = \frac{\text{RSR} / 100}{\log_2(1 + C_{\text{norm}}) \cdot \log_2(1 + T_{\text{norm}})}$ | Pareto frontier metric with $C_{\text{norm}} = \frac{\overline{C}_{\text{rec}}}{\overline{C}_{\text{base}}}$ and $T_{\text{norm}} = \frac{\overline{T}_{\text{rec}}}{\overline{T}_{\text{base}}}$. |
 
+#### Formal Mathematical Formulations
+
+Let $\mathcal{T} = \{1, 2, \dots, N\}$ denote the set of all evaluated trials ($N = 400$). Let $\mathcal{S}_{\text{succ}} = \{i \in \mathcal{T} \mid \text{Success}_i = 1\}$ denote the subset of trials in which the recovery controller successfully restored valid execution, with active recovery cardinality $N_{\text{succ}} = |\mathcal{S}_{\text{succ}}| = \sum_{i=1}^N \mathbb{I}(\text{Success}_i)$.
+
+1. **Mean Time to Recover (Active):**
+   $$\text{MTTR}_A = \frac{\sum_{i \in \mathcal{S}_{\text{succ}}} \text{Latency}^{(i)}}{|\mathcal{S}_{\text{succ}}|} = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} t_{\text{rec}}^{(i)}$$
+   where $t_{\text{rec}}^{(i)}$ represents the recovery latency (wall-clock seconds) of trial $i$, conditioning exclusively on successful recoveries to prevent skew from unrecovered timeout timeouts.
+
+2. **Mean Tokens to Recover (Active):**
+   $$\text{MTCR}_A = \frac{\sum_{i \in \mathcal{S}_{\text{succ}}} \text{Tokens}^{(i)}}{|\mathcal{S}_{\text{succ}}|} = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} c_{\text{rec}}^{(i)}$$
+   where $c_{\text{rec}}^{(i)}$ denotes the additional prompt and completion tokens incurred by the recovery mechanism for trial $i$.
+
+3. **Cost-Normalized Recovery Efficiency (CNRE):**
+   $$\text{CNRE} = \frac{\text{RSR} / 100}{\max\left(\epsilon, \, \log_2(1 + C_{\text{norm}}) \cdot \log_2(1 + T_{\text{norm}})\right)}$$
+   where:
+   - $C_{\text{norm}} = \frac{\overline{C}_{\text{rec}}}{\max(1, \overline{C}_{\text{base}})}$ is the normalized recovery token cost relative to the nominal unperturbed task baseline $\overline{C}_{\text{base}}$.
+   - $T_{\text{norm}} = \frac{\overline{T}_{\text{rec}}}{\max(\delta, \overline{T}_{\text{base}})}$ is the normalized recovery wall-clock latency relative to baseline execution latency $\overline{T}_{\text{base}}$ ($\delta = 0.01\text{s}$).
+   - $\epsilon = 0.05$ is a positive regularization bound guaranteeing numerical stability when sub-millisecond fast-path recoveries approach $T_{\text{norm}} \approx 0$.
+   CNRE defines the Pareto frontier balancing recovery effectiveness against computational token expenditure and latency overhead.
+
 ---
 
 ## 3. Formal Mathematical Proofs

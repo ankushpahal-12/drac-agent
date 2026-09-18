@@ -69,7 +69,7 @@ class DRACTestbedCLI:
         """Run step-by-step verification of all 18 endpoints and core contracts."""
         print("[*] Running DRAC End-to-End Production Verification Suite...")
         import unittest
-        from test_production_suite import TestDRACProductionSuite
+        from tests.test_production_suite import TestDRACProductionSuite
         
         suite = unittest.TestLoader().loadTestsFromTestCase(TestDRACProductionSuite)
         runner = unittest.TextTestRunner(verbosity=2)
