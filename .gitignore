@@ -40,7 +40,9 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# User private docs
+# User private docs & proprietary paper drafts
 *.docx
 *.tmp
+*DRAC_FULL_PAPER*
+paper/*DRAFT*.md
 

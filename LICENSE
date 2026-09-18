@@ -1,21 +1,56 @@
-MIT License
+DRAC Non-Commercial Research and Educational License
+Version 1.0 (2026)
 
-Copyright (c) 2026 DRAC Research Team
+Copyright (c) 2026 DRAC Project Authors & Contributors. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+================================================================================
+TERMS AND CONDITIONS FOR ACCESS, USE, REPRODUCTION, AND DISTRIBUTION
+================================================================================
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. GRANT OF LICENSE FOR NON-COMMERCIAL USE
+Subject to the terms and conditions of this Agreement, the Copyright Holders 
+hereby grant to you a worldwide, non-exclusive, no-charge, royalty-free license 
+to view, download, reproduce, prepare derivative works of, and execute the 
+Software solely for:
+  (a) Non-commercial academic research;
+  (b) Personal educational and study purposes;
+  (c) Peer review, replication, and validation of published scientific results;
+  (d) Internal, non-revenue-generating evaluation.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. EXPRESS PROHIBITION ON COMMERCIAL USE AND SALE
+UNDER NO CIRCUMSTANCES MAY THIS SOFTWARE, OR ANY DERIVATIVE WORK THEREOF, BE 
+SOLD, MONETIZED, RESOLD, RENTED, LEASED, SUBLICENSED, OR COMMERCIALLY EXPLOITED.
+
+Specifically:
+  (a) NO COMMERCIAL SALE: You may not sell the Software, in whole or in part, 
+      whether standalone, bundled, or integrated into proprietary applications 
+      or cloud services.
+  (b) NO COMMERCIAL DEPLOYMENT: You may not use the Software to provide paid 
+      commercial services, commercial API endpoints, enterprise agent 
+      remediation tools, or hosted SaaS products without prior written permission.
+  (c) MANDATORY PRIOR OWNER AUTHORIZATION: Before selling, distributing for fee, 
+      or incorporating the Software into any commercial offering, product, or 
+      commercial service, you MUST obtain explicit, prior written permission and 
+      an authorized commercial license from the Copyright Owner.
+
+3. REDISTRIBUTION CONDITIONS
+You may reproduce and distribute exact copies or non-commercial modifications 
+of the Software, provided that:
+  (a) You include a verbatim copy of this LICENSE file in all distributions;
+  (b) You prominently retain all copyright notices, author attributions, and 
+      disclaimers;
+  (c) Any derivative work is distributed strictly under the same non-commercial 
+      terms and conditions set forth herein.
+
+4. COMMERCIAL INQUIRIES & LICENSING
+For commercial licensing inquiries, enterprise deployment rights, dual-licensing 
+agreements, or written commercial authorization, please contact the repository 
+owner directly via official communication channels or repository inquiries.
+
+5. DISCLAIMER OF WARRANTIES & LIMITATION OF LIABILITY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS 
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER 
+IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN 
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

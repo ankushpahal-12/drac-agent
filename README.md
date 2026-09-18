@@ -124,7 +124,7 @@ $$N_{\text{succ}} = |\mathcal{S}_{\text{succ}}| = \sum_{i=1}^N \mathbb{I}(\text{
 ## 5. Technical Documentation & Extended Artifacts
 
 * **[COMPLETE_TABLES_AND_PROOF.md](COMPLETE_TABLES_AND_PROOF.md):** Complete extended documentation containing all 6 empirical tables, formal mathematical proofs for Theorems 1-3, and the failure-mode remediation impact matrix.
-* **[paper/DRAC_FULL_PAPER_DRAFT.md](paper/DRAC_FULL_PAPER_DRAFT.md):** Full academic research manuscript organized across 8 formal sections.
+* **Academic Manuscript:** Research paper preprint under review (available upon academic request; preprint forthcoming on arXiv).
 * **[paper/references.bib](paper/references.bib):** Complete 45-paper BibTeX database covering literature from 2023 to 2026.
 * **[experiments/results/summary_metrics.csv](experiments/results/summary_metrics.csv):** Aggregated metrics across all 5 evaluated recovery paradigms.
 * **[experiments/results/raw_trials.csv](experiments/results/raw_trials.csv):** Full trial-by-trial logs across all 400 real-execution evaluations.
@@ -189,14 +189,13 @@ drac/
 |   |-- plot_theoretical_diagrams.py # Figures 5 & 6 vector plot generator
 |   \-- plots/                  # Generated high-resolution publication figures
 |-- paper/                      # Academic Manuscript & BibTeX Database
-|   |-- DRAC_FULL_PAPER_DRAFT.md# Complete 8-section research paper draft
 |   |-- COMPLETE_TABLES_AND_PROOF.md # Dedicated empirical tables and mathematical proofs
 |   |-- references.bib          # 45-paper BibTeX bibliography (2023-2026)
 |   \-- figures/                # High-resolution diagrams & vector plots
 |-- tests/                      # Production Test Suite
 |   \-- test_production_suite.py# Comprehensive unit and integration test suite
 |-- main.py                     # Master CLI runner (--mode all|verify|benchmark|tables)
-|-- LICENSE                     # MIT Open Source License
+|-- LICENSE                     # Non-Commercial Research & Educational License
 \-- README.md                   # Repository Documentation
 ```
 
@@ -210,6 +209,6 @@ drac/
   author={Senior Research Team},
   journal={arXiv preprint arXiv:2603.XXXXX},
   year={2026},
-  url={https://github.com/<username>/drac}
+  url={https://github.com/ankushpahal-12/drac-agent}
 }
 ```
