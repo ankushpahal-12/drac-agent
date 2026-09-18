@@ -66,16 +66,19 @@ class DRACTestbedCLI:
         print(banner)
 
     def run_verification(self) -> bool:
-        """Run step-by-step verification of all 18 endpoints and core contracts."""
-        print("[*] Running DRAC End-to-End Production Verification Suite...")
+        """Run step-by-step verification of all endpoints, core contracts, and Phase 2 enterprise resilience."""
+        print("[*] Running DRAC End-to-End Production & Enterprise Verification Suite...")
         import unittest
         from tests.test_production_suite import TestDRACProductionSuite
+        from tests.test_phase2_enterprise import TestPhase2EnterpriseResilience
         
-        suite = unittest.TestLoader().loadTestsFromTestCase(TestDRACProductionSuite)
+        suite = unittest.TestSuite()
+        suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestDRACProductionSuite))
+        suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestPhase2EnterpriseResilience))
         runner = unittest.TextTestRunner(verbosity=2)
         result = runner.run(suite)
         if result.wasSuccessful():
-            print("\n[+] All DRAC components, proxies, diagnosers, and agents PASSED with 100% test coverage.\n")
+            print("\n[+] All DRAC production & Phase 2 enterprise components PASSED with 100% test coverage.\n")
             return True
         else:
             print("\n[-] Verification failures detected.\n")

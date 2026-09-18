@@ -55,6 +55,12 @@ class RecoveryAction(Enum):
     ALTERNATE_MODEL = "ALTERNATE_MODEL"
     HUMAN_ESCALATION = "HUMAN_ESCALATION"
 
+class OutboxStatus(Enum):
+    STAGED = "STAGED"
+    COMMITTED = "COMMITTED"
+    COMPENSATED = "COMPENSATED"
+    ABORTED = "ABORTED"
+
 @dataclass
 class TelemetryEvent:
     timestamp: float
@@ -69,6 +75,10 @@ class TelemetryEvent:
     latency_ms: float = 0.0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    is_idempotent: bool = True
+    compensating_action: Optional[str] = None
+    hmac_signature: Optional[str] = None
+    epoch_token: int = 1
 
 @dataclass
 class DiagnosisResult:

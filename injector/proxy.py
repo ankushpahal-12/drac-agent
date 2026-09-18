@@ -3,15 +3,24 @@ Runtime Interception Proxy for Chaos Fault Injection.
 Non-invasively intercepts tool calls and executes fault injections.
 """
 import time
+import hmac
+import hashlib
+import secrets
 from typing import Dict, Any, Optional, Callable, Tuple
 from drac.types import FaultType, TelemetryEvent
 
 class RuntimeFaultProxy:
-    def __init__(self):
+    def __init__(self, session_key: Optional[bytes] = None):
         self.active_fault: Optional[FaultType] = None
         self.fault_trigger_step: int = 1
         self.current_step: int = 0
         self.injected_count: int = 0
+        self.session_key: bytes = session_key or secrets.token_bytes(32)
+
+    def generate_hmac(self, status: int, step: int, error_str: str) -> str:
+        """Generates a cryptographic HMAC-SHA256 attestation signature over telemetry metadata."""
+        msg = f"{status}:{step}:{error_str}".encode("utf-8")
+        return hmac.new(self.session_key, msg, hashlib.sha256).hexdigest()
 
     def arm_fault(self, fault_type: Optional[FaultType], trigger_step: int = 1):
         """Arm the proxy to fire a specific fault at a specific execution step."""
@@ -20,6 +29,11 @@ class RuntimeFaultProxy:
         self.current_step = 0
 
     def intercept_tool_call(self, agent_id: str, tool_name: str, tool_args: Dict[str, Any], execute_fn: Callable[[], Any]) -> Tuple[Any, TelemetryEvent]:
+        res, telem = self._raw_intercept_tool_call(agent_id, tool_name, tool_args, execute_fn)
+        telem.hmac_signature = self.generate_hmac(telem.http_status or 200, telem.step, telem.raw_error or "")
+        return res, telem
+
+    def _raw_intercept_tool_call(self, agent_id: str, tool_name: str, tool_args: Dict[str, Any], execute_fn: Callable[[], Any]) -> Tuple[Any, TelemetryEvent]:
         """
         Intercepts tool execution, applies fault injection if armed, and records telemetry.
         """

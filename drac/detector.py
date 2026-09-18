@@ -7,11 +7,23 @@ import re
 from typing import List, Optional, Tuple, Dict, Any
 from drac.types import TelemetryEvent
 
+import hmac
+import hashlib
+
 class AnomalyDetector:
-    def __init__(self, timeout_threshold_ms: float = 8000.0, max_consecutive_repeats: int = 3):
+    def __init__(self, timeout_threshold_ms: float = 8000.0, max_consecutive_repeats: int = 3, session_key: Optional[bytes] = None):
         self.timeout_threshold_ms = timeout_threshold_ms
         self.max_consecutive_repeats = max_consecutive_repeats
+        self.session_key: Optional[bytes] = session_key
         self.trace_history: List[TelemetryEvent] = []
+
+    def verify_hmac(self, event: TelemetryEvent) -> bool:
+        """Verifies cryptographic signature if session_key is configured."""
+        if not self.session_key or not event.hmac_signature:
+            return True if not self.session_key else False
+        msg = f"{event.http_status or 200}:{event.step}:{event.raw_error or ''}".encode("utf-8")
+        expected = hmac.new(self.session_key, msg, hashlib.sha256).hexdigest()
+        return hmac.compare_digest(event.hmac_signature, expected)
 
     def observe(self, event: TelemetryEvent) -> Tuple[bool, Optional[str]]:
         """
@@ -19,6 +31,11 @@ class AnomalyDetector:
         Returns (is_anomaly, anomaly_reason).
         """
         self.trace_history.append(event)
+
+        # Cryptographic Invariant: Detect Spoofed / Unauthenticated Adversarial Error Injection
+        if self.session_key and (event.raw_error or (event.http_status and event.http_status >= 400)):
+            if not self.verify_hmac(event):
+                return True, "ADVERSARIAL_INJECTION_SPOOFED_ERROR"
 
         # Invariant 1: HTTP Error or Timeout
         if event.http_status and event.http_status >= 500:
