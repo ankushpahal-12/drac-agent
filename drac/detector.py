@@ -1,0 +1,61 @@
+"""
+DRAC Out-of-Band Trace & Anomaly Detector.
+Passively monitors telemetry and verifies runtime execution invariants.
+"""
+import json
+import re
+from typing import List, Optional, Tuple, Dict, Any
+from drac.types import TelemetryEvent
+
+class AnomalyDetector:
+    def __init__(self, timeout_threshold_ms: float = 8000.0, max_consecutive_repeats: int = 3):
+        self.timeout_threshold_ms = timeout_threshold_ms
+        self.max_consecutive_repeats = max_consecutive_repeats
+        self.trace_history: List[TelemetryEvent] = []
+
+    def observe(self, event: TelemetryEvent) -> Tuple[bool, Optional[str]]:
+        """
+        Record telemetry event and evaluate runtime invariants.
+        Returns (is_anomaly, anomaly_reason).
+        """
+        self.trace_history.append(event)
+
+        # Invariant 1: HTTP Error or Timeout
+        if event.http_status and event.http_status >= 500:
+            return True, f"HTTP_{event.http_status}_SERVER_ERROR"
+        if event.latency_ms > self.timeout_threshold_ms:
+            return True, f"EXECUTION_TIMEOUT_{event.latency_ms}ms"
+
+        # Invariant 2: Explicit Exception / Stacktrace
+        if event.raw_error:
+            return True, f"RAW_EXCEPTION: {event.raw_error}"
+
+        # Invariant 3: Empty / Null Return from Tool
+        if event.action_type == "tool_call":
+            if event.tool_result is None or (isinstance(event.tool_result, (str, list, dict)) and len(event.tool_result) == 0):
+                return True, "EMPTY_TOOL_RESULT"
+
+        # Invariant 4: Loop / Repetition Detection
+        if len(self.trace_history) >= self.max_consecutive_repeats:
+            recent_actions = [
+                (t.tool_name, json.dumps(t.tool_args, sort_keys=True) if t.tool_args else None)
+                for t in self.trace_history[-self.max_consecutive_repeats:]
+            ]
+            if len(set(recent_actions)) == 1 and recent_actions[0][0] is not None:
+                return True, f"INFINITE_ACTION_LOOP: {recent_actions[0][0]}"
+
+        # Invariant 5: Malformed JSON Output Check
+        if event.action_type == "llm_generation" and isinstance(event.tool_result, str):
+            res_str = event.tool_result.strip()
+            if res_str.startswith("{") or res_str.startswith("["):
+                try:
+                    parsed = json.loads(res_str)
+                    if isinstance(parsed, dict) and "error" in parsed and parsed["error"]:
+                        return True, f"JSON_API_ERROR: {parsed['error']}"
+                except Exception as e:
+                    return True, f"MALFORMED_JSON_SCHEMA: {str(e)}"
+
+        return False, None
+
+    def reset(self):
+        self.trace_history.clear()
