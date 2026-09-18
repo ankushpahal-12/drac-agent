@@ -107,16 +107,16 @@ DRAC Full System achieves:
 
 | Metric Symbol | Full Metric Name | Formal Definition / Formula | Operational SRE Significance |
 | :--- | :--- | :--- | :--- |
-| **FDR** | Fault Detection Rate | $\text{FDR} = \frac{\sum \mathbb{I}(\text{Fault Detected})}{\sum \mathbb{I}(\text{Fault Injected})} \times 100\%$ | Quantifies the coverage of runtime invariant monitoring. |
-| **RCA** | Root Cause Accuracy | $\text{RCA} = \frac{\sum \mathbb{I}(\text{Predicted Domain} = \text{True Domain})}{\sum \mathbb{I}(\text{Fault Detected})} \times 100\%$ | Measures precision of fault attribution against ground truth. |
-| **RSR** | Recovery Success Rate | $\text{RSR} = \frac{\sum \mathbb{I}(\text{Task Completed Post-Fault})}{\sum \mathbb{I}(\text{Fault Injected})} \times 100\%$ | Primary resilience KPI for autonomous agent operations. |
-| **RL** | Recovery Latency | $\text{RL} = \frac{1}{N} \sum_{i=1}^N (t_{recovered}^{(i)} - t_{fault}^{(i)})$ | Mean clock time consumed during fault diagnosis and recovery. |
-| **RC** | Recovery Cost | $\text{RC} = \frac{1}{N} \sum_{i=1}^N (\text{Tokens Consumed in Recovery}^{(i)})$ | Average additional token expenditure required to restore health. |
-| **MTTR_A** | Mean Time to Recover (Active) | $\text{MTTR}_A = \frac{\sum_{i \in \text{Succ}} \text{Latency}^{(i)}}{|\text{Succ}|}$ | Latency specifically across successful remediation trials. |
-| **MTCR_A** | Mean Tokens to Recover (Active) | $\text{MTCR}_A = \frac{\sum_{i \in \text{Succ}} \text{Tokens}^{(i)}}{|\text{Succ}|}$ | Token expenditure specifically across successful remediation trials. |
-| **CCF** | Cascade Containment Factor | $\text{CCF} = \frac{\sum \mathbb{I}(\text{Error Contained at Origin Agent})}{N_{MAS}} \times 100\%$ | Quantifies prevention of inter-agent error propagation in MAS. |
-| **TOR** | Token Overhead Ratio | $\text{TOR} = \frac{\overline{\text{RC}}}{\overline{\text{Base Task Tokens}}} \times 100\%$ | Percentage increase in billing over normal nominal task execution. |
-| **CNRE** | Cost-Normalized Recovery Efficiency | $\text{CNRE} = \frac{\text{RSR} / 100}{\log_2(1 + \text{Cost}_{norm}) \cdot \log_2(1 + \text{Lat}_{norm})}$ | Pareto efficiency balancing recovery rate against token and time costs. |
+| **FDR** | Fault Detection Rate | $\text{FDR} = \frac{1}{N} \sum_{i=1}^N \mathbb{I}(\text{Detected}_i) \times 100\%$ | Proportion of injected perturbations flagged by out-of-band invariant monitoring. |
+| **RCA** | Root Cause Accuracy | $\text{RCA} = \frac{1}{N_{\text{det}}} \sum_{i=1}^{N_{\text{det}}} \mathbb{I}(\hat{d}_i = d_i^*) \times 100\%$ | Diagnostic precision of attributed fault domain $\hat{d}_i$ against ground-truth domain $d_i^*$. |
+| **RSR** | Recovery Success Rate | $\text{RSR} = \frac{1}{N} \sum_{i=1}^N \mathbb{I}(\text{Success}_i) \times 100\%$ | Primary resilience KPI: fraction of perturbed trials reaching valid task completion. |
+| **RL** | Recovery Latency | $\text{RL} = \frac{1}{N} \sum_{i=1}^N t_{\text{rec}}^{(i)}$ | Mean wall-clock time consumed during detection, diagnosis, and state recovery. |
+| **RC** | Recovery Cost | $\text{RC} = \frac{1}{N} \sum_{i=1}^N c_{\text{rec}}^{(i)}$ | Mean additional token expenditure consumed by the recovery controller to restore valid state. |
+| **MTTR_A** | Mean Time to Recover (Active) | $\text{MTTR}_A = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} t_{\text{rec}}^{(i)}$ | Mean clock latency across successful recovery trials, where $N_{\text{succ}} = \text{card}(\mathcal{S}_{\text{succ}})$. |
+| **MTCR_A** | Mean Tokens to Recover (Active) | $\text{MTCR}_A = \frac{1}{N_{\text{succ}}} \sum_{i \in \mathcal{S}_{\text{succ}}} c_{\text{rec}}^{(i)}$ | Mean recovery token cost across successful trials, where $N_{\text{succ}} = \text{card}(\mathcal{S}_{\text{succ}})$. |
+| **CCF** | Cascade Containment Factor | $\text{CCF} = \frac{1}{N_{\text{MAS}}} \sum_{j=1}^{N_{\text{MAS}}} \mathbb{I}(\text{Contained}_j) \times 100\%$ | Proportion of multi-agent faults neutralized at origin without downstream poisoning. |
+| **TOR** | Token Overhead Ratio | $\text{TOR} = \frac{\overline{C}_{\text{rec}}}{\overline{C}_{\text{base}}} \times 100\%$ | Percentage token inflation relative to unperturbed nominal baseline execution cost $\overline{C}_{\text{base}}$. |
+| **CNRE** | Cost-Normalized Recovery Efficiency | $\text{CNRE} = \frac{\text{RSR} / 100}{\log_2(1 + C_{\text{norm}}) \cdot \log_2(1 + T_{\text{norm}})}$ | Pareto frontier metric with $C_{\text{norm}} = \frac{\overline{C}_{\text{rec}}}{\overline{C}_{\text{base}}}$ and $T_{\text{norm}} = \frac{\overline{T}_{\text{rec}}}{\overline{T}_{\text{base}}}$. |
 
 ---
 
