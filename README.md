@@ -1,6 +1,16 @@
-# DRAC: Diagnosis, Recovery, and Adaptive Control for Fault-Tolerant LLM Agents
+<h1 align="center">DRAC: Diagnosis, Recovery, and Adaptive Control for Fault-Tolerant LLM Agents</h1>
 
-DRAC is an autonomous, out-of-band resilience framework for Large Language Model (LLM) agents. It provides passive anomaly detection, dual-process root-cause diagnosis, transactional state rollback with Distilled Negative Constraint Synthesis (DNCS), and budget-constrained decision arbitration modeled as a Budget-Constrained Partially Observable Markov Decision Process (B-POMDP).
+<p align="center">
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.10+"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Non--Commercial-red.svg?style=for-the-badge" alt="License: Non-Commercial"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/Tests-9%2F9%20Passing-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests Passing"></a>
+  <a href="experiments/"><img src="https://img.shields.io/badge/Benchmarks-400%20Trials-orange?style=for-the-badge&logo=speedtest&logoColor=white" alt="400 Real Trials"></a>
+  <a href="drac/"><img src="https://img.shields.io/badge/Architecture-B--POMDP-blueviolet?style=for-the-badge" alt="B-POMDP Architecture"></a>
+</p>
+
+<p align="center">
+  <strong>An autonomous, decoupled resilience framework providing passive telemetry anomaly detection, dual-process root-cause diagnosis, transactional state rollback with Distilled Negative Constraint Synthesis (DNCS), and budget-constrained decision arbitration over a B-POMDP.</strong>
+</p>
 
 ---
 
@@ -10,8 +20,10 @@ Autonomous LLM agents are transitioning from conversational assistants to missio
 
 Current industry and academic resilience strategies suffer from a fundamental recovery trilemma:
 
-1. **Context Contamination (Naive In-Band Retry):** Appending raw execution traces or exception stack traces directly into the LLM context prompt pollutes the autoregressive attention window. By conditioning on error-heavy tokens (e.g., `OperationalError`, `500 Server Error`), the model's predictive distribution shifts into an error-discourse subspace, triggering repeated failures or catastrophic hallucinations.
-2. **Rollback Amnesia (Pure Rollback):** Rewinding context to a clean checkpoint without supplementary guidance restores the identical distribution mode. Under deterministic or low-temperature greedy decoding ($\tau \to 0$), the agent reproduces the exact same flawed invocation.
+1. **Context Contamination (Naive In-Band Retry):** Appending raw execution traces or exception stack traces directly into the LLM context prompt pollutes the autoregressive attention window. By conditioning on error-heavy tokens (e.g., `OperationalError`, `500 Server Error`), the model's predictive distribution shifts into an error-discourse subspace, triggering repeated failures or catastrophic hallucinations:
+   $$\mathbb{P}_\theta(a_{\text{valid}} \mid X_{\text{clean}}) > \mathbb{P}_\theta(a_{\text{valid}} \mid X_{\text{clean}} \circ X_{\text{fail}})$$
+2. **Rollback Amnesia (Pure Rollback):** Rewinding context to a clean checkpoint without supplementary guidance restores the identical distribution mode. Under deterministic or low-temperature greedy decoding ($\tau \to 0$), the agent reproduces the exact same flawed invocation:
+   $$\mathbb{P}_\theta(a_{k+1} = a_{\text{fail}} \mid \text{Rollback}(S_k)) = 1.0$$
 3. **Monolithic Self-Diagnosis (In-Band Reflection / Reflexion):** Tasking the failing agent to reflect on its own errors within the primary conversation context incurs runaway token inflation (>100% overhead) and lacks ground-truth verification, resulting in ungrounded confabulation and complete failure on infrastructure crashes ($0.0\%$ recovery).
 
 DRAC resolves this trilemma by physically decoupling runtime monitoring and diagnosis from agent execution, restoring state transactionally, synthesizing ultra-compact negative constraints, and evaluating recovery actions against explicit token and latency budget limits.
@@ -32,13 +44,65 @@ DRAC resolves this trilemma by physically decoupling runtime monitoring and diag
   <img src="paper/figures/bpomdp_control_loop_diagram.jpg" alt="DRAC B-POMDP Control Loop Architecture" width="850">
 </p>
 
+### Closed-Loop Architecture & Data Flow (Mermaid Diagram)
+
+```mermaid
+graph TD
+    subgraph ClientExecution ["1. Agent Runtime Layer"]
+        Agent["LLM Agent Execution Engine"]
+        Proxy["Out-of-Band Telemetry Proxy"]
+        ToolEnv["External Tools & Environment (SQLite, Web, MAS)"]
+        Agent -->|"Tool Call (Action a_t)"| Proxy
+        Proxy -->|"Transparent Invocation"| ToolEnv
+        ToolEnv -->|"Result / Exception"| Proxy
+    end
+
+    subgraph ObservabilityEngine ["2. Out-of-Band Telemetry & Diagnosis"]
+        Detector["Invariant Anomaly Detector"]
+        Diagnoser{"Dual-Process Diagnoser"}
+        Sys1["System 1: Deterministic Fast-Path (0.010ms, 0 tok)"]
+        Sys2["System 2: Semantic Micro-Evaluator (25ms, <=65 tok)"]
+        Proxy -.->|"Passive Telemetry Stream"| Detector
+        Detector -->|"Invariant Breach Flagged"| Diagnoser
+        Diagnoser -->|"Structured Pattern Match"| Sys1
+        Diagnoser -->|"Ambiguous Semantic Drift"| Sys2
+        Sys1 --> BeliefState["Belief State b(s) & Fault Attribution"]
+        Sys2 --> BeliefState
+    end
+
+    subgraph DecisionControl ["3. B-POMDP Budget-Constrained Arbiter"]
+        BeliefState --> Arbiter["Utility Arbiter: max E[U(a)]"]
+        Budgets["Remaining Budget: B = (C_rem, T_rem)"] --> Arbiter
+        Arbiter --> Actions{"Selected Recovery Primitive"}
+        Actions -->|"Parameter Error"| A1["PARAM_RETRY (Backoff)"]
+        Actions -->|"Logic / Schema Error"| A2["ROLLBACK_DNCS"]
+        Actions -->|"Stale Cache / Session"| A3["ENV_MUTATE (Refresh)"]
+        Actions -->|"Infinite Action Loop"| A4["REPLAN (State Pivot)"]
+        Actions -->|"Budget Exhausted"| A5["HUMAN_ESCALATION (Safe Halt)"]
+    end
+
+    subgraph RecoveryPipeline ["4. Transactional Rollback & Verification"]
+        A2 --> StateManager["Transactional State Manager"]
+        StateManager -->|"Context Rewind"| Checkpoint["Rollback to Clean S_k"]
+        StateManager -->|"DNCS Synthesizer"| Constraint["Synthesize Negative Constraint (<=25 tok)"]
+        Checkpoint --> Verifier["Pre-Flight Invariant Verifier"]
+        Constraint --> Verifier
+        A1 --> Verifier
+        A3 --> Verifier
+        A4 --> Verifier
+        Verifier -->|"Post-Condition Validated"| Resume["Resume Agent Autonomy"]
+        Resume --> Agent
+    end
+```
+
 DRAC operates via an out-of-band closed-loop engine organized into five discrete components:
 
 1. **Runtime Telemetry Monitor:** Intercepts tool execution signals (HTTP status codes, latency deltas, return schemas, exception payloads) transparently at the proxy boundary without modifying agent source code.
 2. **Decoupled Dual-Process Diagnoser:** 
    - *System 1 (Fast-Path):* Deterministic pattern matching over 16 structured fault signatures ($0.010\text{ ms}$ latency, $0\text{ token overhead}$, $98.2\%$ accuracy).
    - *System 2 (Slow-Path):* Isolated, asynchronous micro-evaluator invoked only when ambiguous semantic exceptions arise ($25\text{ ms}$, $\le 65\text{ tokens}$).
-3. **Budget-Constrained Utility Arbiter (B-POMDP):** Evaluates expected utility $\mathbb{E}[U(a)]$ across five discrete recovery primitives (`PARAM_RETRY`, `ROLLBACK_DNCS`, `ENV_MUTATE`, `REPLAN`, `HUMAN_ESCALATION`) subject to hard remaining token ($C_{\text{rem}}$) and time ($T_{\text{rem}}$) thresholds.
+3. **Budget-Constrained Utility Arbiter (B-POMDP):** Evaluates expected utility $\mathbb{E}[U(a)]$ across five discrete recovery primitives (`PARAM_RETRY`, `ROLLBACK_DNCS`, `ENV_MUTATE`, `REPLAN`, `HUMAN_ESCALATION`) subject to hard remaining token ($C_{\text{rem}}$) and time ($T_{\text{rem}}$) thresholds:
+   $$V^*(b) = \max_{a \in \mathcal{A}} \left[ \rho(b, a) + \gamma \sum_{o \in \Omega} \mathbb{P}(o \mid b, a) V^*(b') \right] \quad \text{s.t.} \quad \mathbb{E}[C] \le C_{\text{budget}}, \, \mathbb{E}[T] \le T_{\text{budget}}$$
 4. **Transactional State Manager with DNCS:** Prunes corrupted trajectory tokens upon rollback to clean checkpoint $S_k$ and injects a distilled negative constraint ($\le 25\text{ tokens}$) forbidding the failed execution mode while preserving valid trajectory context.
 5. **Pre-Flight Invariant Verifier:** Formally verifies state invariants and return schemas prior to resuming agent autonomy.
 
@@ -119,6 +183,10 @@ $$N_{\text{succ}} = |\mathcal{S}_{\text{succ}}| = \sum_{i=1}^N \mathbb{I}(\text{
    - $T_{\text{norm}} = \frac{\overline{T}_{\text{rec}}}{\max(\delta, \overline{T}_{\text{base}})}$ is the normalized recovery wall-clock latency relative to baseline execution latency $\overline{T}_{\text{base}}$ ($\delta = 0.01\text{s}$).
    - $\epsilon = 0.05$ is a positive regularization bound guaranteeing numerical stability when sub-millisecond fast-path recoveries approach $T_{\text{norm}} \approx 0$.
 
+4. **Multi-Agent Cascade Containment Factor (CCF):**
+   $$\text{CCF} = \frac{1}{N_{\text{MAS}}} \sum_{j=1}^{N_{\text{MAS}}} \mathbb{I}(\text{Contained}_j) \times 100\%$$
+   measuring the proportion of perturbations trapped and remediated at the originating node before polluting downstream consumer agents in the DAG.
+
 ---
 
 ## 5. Technical Documentation & Extended Artifacts
@@ -136,8 +204,8 @@ $$N_{\text{succ}} = |\mathcal{S}_{\text{succ}}| = \sum_{i=1}^N \mathbb{I}(\text{
 ### Installation
 
 ```bash
-git clone https://github.com/<username>/drac.git
-cd drac
+git clone https://github.com/ankushpahal-12/drac-agent.git
+cd drac-agent
 pip install -r requirements.txt
 ```
 
@@ -160,48 +228,7 @@ python main.py --mode all
 
 ---
 
-## 7. Repository Structure
-
-```
-drac/
-|-- drac/                       # Core DRAC Resilience Engine
-|   |-- types.py                # TelemetryEvent, FaultDomain, Checkpoint, Budget
-|   |-- detector.py             # Out-of-band invariant anomaly detector
-|   |-- diagnoser.py            # Dual-Process Diagnoser (System 1 & System 2)
-|   |-- dncs.py                 # Distilled Negative Constraint Synthesizer
-|   |-- state_manager.py        # Transactional checkpointer & context pruner
-|   |-- arbiter.py              # B-POMDP budget-constrained utility arbiter
-|   \-- verifier.py             # Pre-flight state & schema invariant verifier
-|-- agents/                     # Benchmark Agent Architectures
-|   |-- calculator_agent.py     # Arithmetic & numerical math tool agent
-|   |-- search_agent.py         # Knowledge-retrieval search agent
-|   |-- db_agent.py             # Relational in-memory SQLite database agent
-|   \-- multi_agent_pipeline.py # 4-node collaborative pipeline (Planner->Researcher->Analyst->Reviewer)
-|-- injector/                   # Chaos Fault Injection Framework
-|   |-- fault_types.py          # 16 fine-grained fault definitions across 6 domains
-|   \-- proxy.py                # Non-invasive runtime tool interception proxy
-|-- baselines/                  # Comparative Recovery Paradigms
-|   \-- strategies.py           # Naive Retry, Reflexion, Pure Rollback, DRAC Fixed, DRAC Full
-|-- experiments/                # Empirical Benchmarking Suite
-|   |-- metrics.py              # SRE Metrics engine (RSR, RCA, FDR, TOR, CCF, CNRE)
-|   |-- run_benchmarks.py       # 400-trial real execution benchmark runner
-|   |-- plot_results.py         # Figures 1 to 4 publication plotter
-|   |-- plot_theoretical_diagrams.py # Figures 5 & 6 vector plot generator
-|   \-- plots/                  # Generated high-resolution publication figures
-|-- paper/                      # Academic Manuscript & BibTeX Database
-|   |-- COMPLETE_TABLES_AND_PROOF.md # Dedicated empirical tables and mathematical proofs
-|   |-- references.bib          # 45-paper BibTeX bibliography (2023-2026)
-|   \-- figures/                # High-resolution diagrams & vector plots
-|-- tests/                      # Production Test Suite
-|   \-- test_production_suite.py# Comprehensive unit and integration test suite
-|-- main.py                     # Master CLI runner (--mode all|verify|benchmark|tables)
-|-- LICENSE                     # Non-Commercial Research & Educational License
-\-- README.md                   # Repository Documentation
-```
-
----
-
-## 8. Citation
+## 7. Citation
 
 ```bibtex
 @article{drac2026faulttolerance,
