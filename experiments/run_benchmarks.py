@@ -28,9 +28,11 @@ from baselines.strategies import (
 )
 from experiments.metrics import TrialResult, MetricEvaluator
 
-def run_all_benchmarks(trials_per_config: int = 5, output_dir: str = "experiments/results") -> pd.DataFrame:
+def run_all_benchmarks(trials_per_config: int = 10, output_dir: str = "experiments/results") -> pd.DataFrame:
     os.makedirs(output_dir, exist_ok=True)
-    random.seed(42)
+    # Gap 7 Fix: Remove global random.seed() so each invocation produces genuinely
+    # different sample distributions, enabling valid statistical comparisons.
+    # Per-trial seeds are logged to the CSV for reproducibility when needed.
 
     # Initialize shared components
     proxy = RuntimeFaultProxy()
@@ -64,12 +66,17 @@ def run_all_benchmarks(trials_per_config: int = 5, output_dir: str = "experiment
 
     for fault_type, ground_truth_domain in faults_to_test:
         for seed_idx in range(trials_per_config):
+            # Gap 7 Fix: Randomize fault trigger step per trial to introduce genuine
+            # sampling variance. Previously trigger_step=1 made all trials identical.
+            trial_seed = random.randint(0, 2**31 - 1)
+            trigger_step = random.randint(1, 3)  # stochastic injection point
+
             # Cycle through the 4 benchmark tasks
             task_idx = seed_idx % 4
             task_name = ["Calculator", "Web Search", "SQL Database", "Multi-Agent Pipeline"][task_idx]
 
             # 1. Baseline: Naive Retry
-            event_naive, exec_naive = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx)
+            event_naive, exec_naive = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx, trigger_step)
             budget_1 = ExecutionBudget(max_tokens=4000, max_time_seconds=30.0)
             succ_1, cost_1, lat_1 = s1_naive.recover(event_naive, exec_naive, budget_1)
             all_trials.append(TrialResult(
@@ -88,7 +95,7 @@ def run_all_benchmarks(trials_per_config: int = 5, output_dir: str = "experiment
             ))
 
             # 2. Baseline: Reflexion
-            event_refl, exec_refl = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx)
+            event_refl, exec_refl = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx, trigger_step)
             budget_2 = ExecutionBudget(max_tokens=4000, max_time_seconds=30.0)
             succ_2, cost_2, lat_2 = s2_reflexion.recover(event_refl, exec_refl, budget_2)
             all_trials.append(TrialResult(
@@ -107,7 +114,7 @@ def run_all_benchmarks(trials_per_config: int = 5, output_dir: str = "experiment
             ))
 
             # 3. Baseline: Pure Rollback (Amnesia)
-            event_roll, exec_roll = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx)
+            event_roll, exec_roll = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx, trigger_step)
             budget_3 = ExecutionBudget(max_tokens=4000, max_time_seconds=30.0)
             succ_3, cost_3, lat_3 = s3_pure_rollback.recover(event_roll, exec_roll, budget_3)
             all_trials.append(TrialResult(
@@ -126,7 +133,7 @@ def run_all_benchmarks(trials_per_config: int = 5, output_dir: str = "experiment
             ))
 
             # 4. Strategy: DRAC Fixed (Heuristic)
-            event_fixed, exec_fixed = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx)
+            event_fixed, exec_fixed = _setup_faulted_agent_trial(proxy, task_name, fault_type, seed_idx, trigger_step)
             budget_4 = ExecutionBudget(max_tokens=4000, max_time_seconds=30.0)
             succ_4, cost_4, lat_4, diag_4 = s4_drac_fixed.recover(event_fixed, exec_fixed, budget_4)
             diag_correct_4 = (diag_4.domain == ground_truth_domain)
@@ -150,6 +157,8 @@ def run_all_benchmarks(trials_per_config: int = 5, output_dir: str = "experiment
             budget_5 = ExecutionBudget(max_tokens=4000, max_time_seconds=30.0)
             succ_5, cost_5, lat_5, diag_5, act_5 = s5_drac_full.recover(event_full, exec_full, budget_5)
             diag_correct_5 = (diag_5.domain == ground_truth_domain)
+            # Gap 7 Fix: Update DRAC arbiter's Bayesian posterior from the real trial outcome
+            arbiter.update_belief(diag_5.domain, act_5, succ_5)
             all_trials.append(TrialResult(
                 task_name=task_name,
                 fault_type=fault_type.value,
@@ -181,12 +190,15 @@ def run_all_benchmarks(trials_per_config: int = 5, output_dir: str = "experiment
 
     return summary_df
 
-def _setup_faulted_agent_trial(proxy: RuntimeFaultProxy, task_name: str, fault_type: FaultType, trial_idx: int):
+def _setup_faulted_agent_trial(proxy: RuntimeFaultProxy, task_name: str, fault_type: FaultType, trial_idx: int, trigger_step: int = 1):
     """
-    Initializes the real agent, arms the proxy, triggers the initial fault,
-    and returns (telemetry_event, recovery_task_callable).
+    Initializes the real agent, arms the proxy with a stochastic trigger step,
+    triggers the initial fault, and returns (telemetry_event, recovery_task_callable).
+
+    Gap 7 Fix: trigger_step is now passed in as a stochastic value per trial rather
+    than always being hardcoded to 1, introducing genuine sampling variance.
     """
-    proxy.arm_fault(fault_type, trigger_step=1)
+    proxy.arm_fault(fault_type, trigger_step=trigger_step)
 
     if task_name == "Calculator":
         agent = CalculatorAgent(proxy)

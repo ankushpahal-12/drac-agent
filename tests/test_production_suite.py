@@ -80,13 +80,21 @@ class TestDRACProductionSuite(unittest.TestCase):
         self.assertIn("MALFORMED_JSON", reason)
 
     def test_04_dual_process_diagnoser_contracts(self):
-        """Verify System 1 is zero-token and System 2 handles semantic failures."""
+        """Verify System 1 is zero-token and System 2 handles semantic failures.
+
+        L3 Fix: System 1 now labels its sub-passes as 'System 1 (String-D)',
+        'System 1 (HTTP-Status-A)', 'System 1 (Tool-Gate-B)', etc.
+        The test checks that the diagnosed_by string starts with 'System 1'
+        (not the exact label), which is the correct invariant — any System 1
+        sub-pass still costs 0 tokens and returns before System 2 runs.
+        """
         diagnoser = DualProcessDiagnoser()
-        
+
         # System 1: SQL Column error
         e_s1 = TelemetryEvent(timestamp=1.0, step=1, agent_id="db", action_type="tool_call", raw_error="OperationalError: Unknown column 'xyz'")
         d_s1 = diagnoser.diagnose("RAW_EXCEPTION", e_s1, [])
-        self.assertEqual(d_s1.diagnosed_by, "System 1 (Fast-Path)")
+        self.assertTrue(d_s1.diagnosed_by.startswith("System 1"),
+                        f"Expected System 1 fast-path, got: {d_s1.diagnosed_by}")
         self.assertEqual(d_s1.diagnostic_cost_tokens, 0)
         self.assertGreaterEqual(d_s1.confidence, 0.95)
 

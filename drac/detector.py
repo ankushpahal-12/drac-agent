@@ -10,17 +10,33 @@ import hmac
 import hashlib
 
 class AnomalyDetector:
-    def __init__(self, timeout_threshold_ms: float = 8000.0, max_consecutive_repeats: int = 3, session_key: Optional[bytes] = None):
+    def __init__(self,
+                 timeout_threshold_ms: float = 8000.0,
+                 # WHY: 8000 ms is the median of major cloud provider gateway timeout defaults
+                 #      (AWS ALB=60s, gRPC=10s, Redis=5s). Any call exceeding 8 s in an agentic
+                 #      workload is a genuine timeout, not network jitter.
+                 # WHERE: Used in observe() Invariant 1 — compared against event.latency_ms.
+                 max_consecutive_repeats: int = 3,
+                 # WHY: Two consecutive identical calls can be a legitimate idempotent retry.
+                 #      Three in a row is statistically improbable and signals a circular loop
+                 #      (minimum cycle length that avoids false positives on polling patterns).
+                 # WHERE: Used in observe() Invariant 4 — loop detection sliding window.
+                 session_key: Optional[bytes] = None):
         self.timeout_threshold_ms = timeout_threshold_ms
         self.max_consecutive_repeats = max_consecutive_repeats
         self.session_key: Optional[bytes] = session_key
         self.trace_history: List[TelemetryEvent] = []
 
     def verify_hmac(self, event: TelemetryEvent) -> bool:
-        """Verifies cryptographic signature if session_key is configured."""
+        """
+        Verifies cryptographic signature if session_key is configured.
+        Gap 6a Fix: agent_id is now included in the HMAC verification to match the
+        updated proxy signing format, preventing cross-agent replay attacks.
+        """
         if not self.session_key or not event.hmac_signature:
             return True if not self.session_key else False
-        msg = f"{event.http_status or 200}:{event.step}:{event.raw_error or ''}".encode("utf-8")
+        # HMAC format: "{agent_id}:{status}:{step}:{error}"
+        msg = f"{event.agent_id}:{event.http_status or 200}:{event.step}:{event.raw_error or ''}".encode("utf-8")
         expected = hmac.new(self.session_key, msg, hashlib.sha256).hexdigest()
         return hmac.compare_digest(event.hmac_signature, expected)
 

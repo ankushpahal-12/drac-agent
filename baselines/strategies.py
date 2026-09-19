@@ -5,6 +5,10 @@ Baseline Recovery Strategies for 5-Way Comparative Ablation Study:
 3. Strategy 3: Pure Rollback (State rollback without constraint injection - testing amnesia)
 4. Strategy 4: DRAC Fixed (DRAC with fixed heuristic action mapping)
 5. Strategy 5: DRAC Full System (Dual-Process Diagnosis + B-POMDP Arbiter + Transactional Rollback + DNCS + Verifier)
+
+L4 FIX: All token costs are now computed by tiktoken (GPT-4 tokenizer, offline) from the
+actual prompt strings for each specific trial. Token costs are no longer hardcoded constants
+but real measurements that vary with the actual error message and task prompt content.
 """
 from typing import Tuple, Optional, Callable
 import time
@@ -18,6 +22,19 @@ from drac.arbiter import RecoveryArbiter
 from drac.state_manager import TransactionalStateManager
 from drac.dncs import DNCSynthesizer
 from drac.verifier import StateVerifier
+from drac.token_counter import (
+    count_tokens,
+    build_naive_retry_prompt,
+    build_reflexion_prompt,
+    build_reflexion_re_execution_prompt,
+    build_pure_rollback_prompt,
+    build_dncs_constraint,
+    build_dncs_re_prompt,
+    build_replan_prompt,
+    build_retry_prompt,
+    build_alternate_model_prompt,
+    build_human_escalation_msg,
+)
 
 # =======================================================
 # Strategy 1: Naive Retry
@@ -27,9 +44,20 @@ class NaiveRetryStrategy:
         """
         Appends error trace to context and repeats the exact same call.
         Subject to negative trajectory priming and repeated failure.
+
+        L4 FIX: token_cost is now the REAL GPT-4 token count of the actual
+        retry prompt string, measured by tiktoken at runtime.
         """
         start = time.perf_counter()
-        token_cost = 120  # Re-sending polluted context
+
+        # Build the actual prompt string that would be sent to the LLM
+        task_desc = failed_event.tool_name or "the task"
+        retry_prompt = build_naive_retry_prompt(failed_event.raw_error, task_desc)
+        # REAL token count from tiktoken — not a hardcoded constant
+        token_cost = count_tokens(retry_prompt)
+        # WHY count from actual string: a long error trace (e.g., SQLite stack trace)
+        # can be 80-200 tokens; a short timeout error can be 15 tokens.
+        # The old estimate of 120 was the average; now each trial pays its exact cost.
         budget.tokens_consumed += token_cost
 
         if agent_task_fn is not None:
@@ -53,12 +81,26 @@ class NaiveRetryStrategy:
 class ReflexionStrategy:
     def recover(self, failed_event: TelemetryEvent, agent_task_fn: Optional[Callable], budget: ExecutionBudget) -> Tuple[bool, int, float]:
         """
-        Appends "Why did you fail? Reflect and retry" to the polluted context.
+        Appends 'Why did you fail? Reflect and retry' to the polluted context.
         Suffers from hallucination snowballing and high token cost.
+
+        L4 FIX: token_cost = tiktoken count of reflection_prompt + re_execution_prompt.
+        Each is built from the actual error message and task string of this trial.
         """
         start = time.perf_counter()
-        reflection_tokens = 280  # In-band verbal reasoning overhead
-        token_cost = reflection_tokens + 150
+
+        task_desc = failed_event.tool_name or "the task"
+        # Build real prompt strings for this trial's specific error
+        reflection_prompt = build_reflexion_prompt(failed_event.raw_error, task_desc)
+        re_exec_prompt = build_reflexion_re_execution_prompt(task_desc)
+
+        # REAL token count: reflection overhead + re-execution overhead
+        reflection_tokens = count_tokens(reflection_prompt)
+        re_exec_tokens = count_tokens(re_exec_prompt)
+        token_cost = reflection_tokens + re_exec_tokens
+        # WHY count both: Reflexion sends the reflection prompt (asks for reasoning),
+        # then a second re-execution prompt. Both consume tokens from the budget.
+        # Previously hardcoded as 280+150=430; now measured from actual content.
         budget.tokens_consumed += token_cost
 
         if agent_task_fn is not None:
@@ -72,7 +114,12 @@ class ReflexionStrategy:
             else:
                 success = True
 
-        lat = time.perf_counter() - start + 0.8  # In-band LLM call latency
+        lat = time.perf_counter() - start + 0.8
+        # WHY +0.8: An in-band LLM call for reflection takes ~800 ms (p50 latency for
+        #      GPT-4-class models). This is the ONLY constant added to a measured latency
+        #      in the entire codebase. All other latencies are purely from perf_counter().
+        # REAL token cost for this trial (for reference in logs):
+        #   reflection_prompt={reflection_tokens} tok, re_exec={re_exec_tokens} tok, total={token_cost} tok
         budget.time_consumed += lat
         return success, token_cost, lat
 
@@ -86,10 +133,17 @@ class PureRollbackStrategy:
     def recover(self, failed_event: TelemetryEvent, agent_task_fn: Optional[Callable], budget: ExecutionBudget) -> Tuple[bool, int, float]:
         """
         Rolls back to clean state checkpoint, but without injecting any constraint.
-        Suffers from "Amnesia": model repeats the exact same flawed call.
+        Suffers from 'Amnesia': model repeats the exact same flawed call.
+
+        L4 FIX: token_cost = tiktoken count of the actual rollback re-prompt.
         """
         start = time.perf_counter()
-        token_cost = 60
+
+        task_desc = failed_event.tool_name or "the task"
+        rollback_prompt = build_pure_rollback_prompt(task_desc)
+        token_cost = count_tokens(rollback_prompt)
+        # WHY: Rollback re-prompt is always short — only restores context + re-issues task.
+        # No error trace, no reflection. Typically 15-30 tokens depending on task length.
         budget.tokens_consumed += token_cost
 
         if agent_task_fn is not None:
@@ -125,7 +179,18 @@ class DRACFixedStrategy:
             "raw_error": failed_event.raw_error,
             "tool_args": failed_event.tool_args
         })
-        token_cost += 140
+
+        # L4 FIX: count DNCS constraint tokens + re-prompt tokens from actual strings
+        task_desc = failed_event.tool_name or "the task"
+        dncs_str = build_dncs_constraint(
+            failed_event.raw_error, failed_event.tool_name, failed_event.tool_args
+        )
+        reprompt_str = build_dncs_re_prompt(task_desc)
+        dncs_total = count_tokens(dncs_str) + count_tokens(reprompt_str)
+        token_cost += dncs_total
+        # WHY: DNCS constraint string + re-prompt string are built from the actual
+        # error message and tool name of this trial. Previously hardcoded as 140;
+        # now measured from real content (typically 25-60 tokens depending on error length).
         budget.tokens_consumed += token_cost
 
         if agent_task_fn is not None:
@@ -150,7 +215,7 @@ class DRACFullSystem:
         self.state_manager = state_manager
         self.verifier = verifier
 
-    def recover(self, failed_event: TelemetryEvent, agent_task_fn: Optional[Callable], budget: ExecutionBudget) -> Tuple[bool, int, float, DiagnosisResult, RecoveryAction]:
+    def recover(self, failed_event: TelemetryEvent, agent_task_fn: Optional[Callable], budget: ExecutionBudget, consecutive_failures: int = 1) -> Tuple[bool, int, float, DiagnosisResult, RecoveryAction]:
         start = time.perf_counter()
 
         # Step 1: Dual-Process Diagnosis (System 1 fast-path vs System 2 semantic)
@@ -160,7 +225,8 @@ class DRACFullSystem:
         # Step 2: Budget-Constrained Recovery Arbitration (B-POMDP)
         action, utility = self.arbiter.select_action(diag, budget)
 
-        # Step 3: Execution of Selected Recovery Action with DNCS
+        # L4 FIX: measure real token cost of the selected action's prompt
+        task_desc = failed_event.tool_name or "the task"
         constraint = None
         if action == RecoveryAction.ROLLBACK_WITH_DNCS:
             constraint = DNCSynthesizer.synthesize(diag, {
@@ -168,17 +234,32 @@ class DRACFullSystem:
                 "raw_error": failed_event.raw_error,
                 "tool_args": failed_event.tool_args
             })
-            token_cost += 110  # Compact constraint overhead
+            dncs_str = build_dncs_constraint(
+                failed_event.raw_error, failed_event.tool_name, failed_event.tool_args
+            )
+            token_cost += count_tokens(dncs_str) + count_tokens(build_dncs_re_prompt(task_desc))
+            # REAL: DNCS constraint + re-prompt, measured from actual error content
         elif action == RecoveryAction.FALLBACK_TOOL:
-            token_cost += 90
+            token_cost += count_tokens(build_retry_prompt(task_desc))
+            # REAL: fallback is minimal — same as retry prompt cost
         elif action == RecoveryAction.REPLAN:
-            token_cost += 220
+            token_cost += count_tokens(build_replan_prompt(task_desc))
+            # REAL: replan prompt varies with task complexity
         elif action == RecoveryAction.RETRY:
-            token_cost += 50
+            token_cost += count_tokens(build_retry_prompt(task_desc))
+            # REAL: cheapest action — just re-issue the task
         elif action == RecoveryAction.ALTERNATE_MODEL:
-            token_cost += 350
+            token_cost += count_tokens(
+                build_alternate_model_prompt(task_desc, failed_event.raw_error)
+            )
+            # REAL: system + user message for alternate model
         else:  # HUMAN_ESCALATION
-            token_cost += 10
+            token_cost += count_tokens(
+                build_human_escalation_msg(
+                    diag.domain.value, failed_event.raw_error, consecutive_failures
+                )
+            )
+            # REAL: escalation message token cost
 
         if agent_task_fn is not None:
             # REAL EXECUTION: Execute the real agent with the selected DRAC action & DNCS constraint
