@@ -61,10 +61,18 @@ class DRACTestbedCLI:
             print("\n[-] Verification failures detected.\n")
             return False
 
-    def run_benchmark_suite(self, trials_per_config: int = 10) -> pd.DataFrame:
-        """Execute the full 400-trial benchmark across 4 tasks, 8 faults, and 5 baselines."""
+    def run_benchmark_suite(self, trials_per_config: int = 10, llm: str = "none") -> pd.DataFrame:
+        """Execute the full benchmark across 4 tasks, 8 faults, and 5 baselines."""
+        llm_client = None
+        if llm == "groq":
+            from drac.llm_client import make_client
+            llm_client = make_client()
+            if not llm_client.is_available:
+                print("[!] Notice: Groq LLM client not available or GROQ_API_KEY unset. Falling back to deterministic mode.")
+                llm_client = None
+
         print(f"[*] Executing DRAC Benchmark Suite ({trials_per_config} Repetitions per Configuration)...")
-        summary_df = run_all_benchmarks(trials_per_config=trials_per_config, output_dir=self.output_dir)
+        summary_df = run_all_benchmarks(trials_per_config=trials_per_config, output_dir=self.output_dir, llm_client=llm_client)
         print("[*] Generating Publication Figures (Figures 1 to 4)...")
         generate_all_plots(
             results_csv=os.path.join(self.output_dir, "raw_trials.csv"),
@@ -165,6 +173,13 @@ def main():
         default="experiments/results",
         help="Directory to store raw CSVs and metrics summary"
     )
+    parser.add_argument(
+        "--llm",
+        type=str,
+        default="none",
+        choices=["none", "groq"],
+        help="Decision engine: 'none' (deterministic baseline) or 'groq' (live Groq LLM)"
+    )
 
     args = parser.parse_args()
     cli = DRACTestbedCLI(output_dir=args.output_dir)
@@ -173,7 +188,7 @@ def main():
     if args.mode == "verify":
         cli.run_verification()
     elif args.mode == "benchmark":
-        cli.run_benchmark_suite(trials_per_config=args.trials)
+        cli.run_benchmark_suite(trials_per_config=args.trials, llm=args.llm)
     elif args.mode == "tables":
         cli.display_paper_tables()
     elif args.mode == "all":
@@ -183,7 +198,7 @@ def main():
             print("[!] Aborting due to verification errors.")
             sys.exit(1)
         print("\n[*] STEP 2: Running Full Benchmark Suite...")
-        cli.run_benchmark_suite(trials_per_config=args.trials)
+        cli.run_benchmark_suite(trials_per_config=args.trials, llm=args.llm)
         print("\n[*] STEP 3: Displaying Consolidated Publication Tables...")
         cli.display_paper_tables()
 
